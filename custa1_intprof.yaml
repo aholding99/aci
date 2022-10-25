@@ -1,7 +1,7 @@
 ---
 
 # This playbook assigns an IPG to a leaf interface
-# Assumption is that EPGs are assiged to AEP and host uses trunked interface
+# Assumption is that EPGs are assigned to AEP and host uses trunked interface
 #==============================================================================================
 # Available tags:
 #
