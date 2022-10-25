@@ -21,5 +21,5 @@
 - 2.6.10.132 ansible_host=2.6.10.132
 
 # Test as follows;
-ansible -i ./hosts -m ping apics
-ansible-playbook -i ./hosts 01_aci_tenant_pb.yml --check -vvvv --tags "tag1"
+- ansible -i ./hosts -m ping apics
+- ansible-playbook -i ./hosts 01_aci_tenant_pb.yml --check -vvvv --tags "tag1"
