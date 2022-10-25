@@ -1,0 +1,78 @@
+---
+
+# This playbook assigns an IPG to a leaf interface
+# Assumption is that EPGs are assiged to AEP and host uses trunked interface
+#==============================================================================================
+# Available tags:
+#
+#   snapshot
+#   intprof
+#   portblock
+#
+#==============================================================================================
+
+- name:                            Associate BareMetal IPG to a Leaf Interface
+  hosts:                           apics
+  connection:                      local
+  gather_facts:                    no
+
+#==============================================================================================
+# Create or delete. Comment out as required.
+#==============================================================================================
+  vars_prompt:
+    - name: "node_id"
+      prompt: "Please enter the Leaf switch Node ID (e.g. 1001)"
+      private: no
+    - name: "interface_id"
+      prompt: "Please enter the interface (e.g. 3)"
+      private: no
+
+  vars:
+    desired_state:                 present
+#    desired_state:                absent
+#    desired_status:               create,modified
+#    desired_status:               delete"
+#
+    int_prof: "{{ node_id + '_IntProf' }}"
+    acc_port_sel: "{{ 'eth1_' + interface_id }}"
+    port_blk: "{{ 'eth1_' + interface_id + '_blk' }}"
+#
+#==============================================================================================
+# APIC access information.
+#==============================================================================================
+    apic_info:                     &apic_info
+      host:                        2.6.10.132
+      username:                    aciuser
+      password:                    aciuser!
+      validate_certs:              no
+
+    rest_info:                     &rest_info
+      use_proxy:                   no
+      path:                        /api/mo/.json
+      method:                      post
+
+#
+  tasks:
+    - name:                        Create an APIC Snapshot
+      aci_config_snapshot:
+        <<:                        *apic_info
+        state:                     present
+        export_policy:             config_backup_ansible
+        max_count:                 10
+        description:               Snapshot Created by Ansible
+      tags:
+        - snapshot
+
+
+    - name: Associate an Interface Access Port Selector to an Interface Policy Leaf Profile with a Policy Group
+      cisco.aci.aci_access_port_to_interface_policy_leaf_profile:
+        <<:                        *apic_info
+        interface_profile: "{{ int_prof }}"
+        access_port_selector: "{{ acc_port_sel }}"
+        port_blk: "{{ port_blk }}"
+        from_port: "{{ interface_id }}"
+        to_port: "{{ interface_id }}"
+        policy_group: BareMetal_APG
+        state: present
+      tags:
+        - intprof
