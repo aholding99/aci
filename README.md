@@ -4,11 +4,11 @@
 - I am NOT a programmer, so if you do use them, it's at your own risk!
 
 # REQUIREMENTS
-sudo yum update
-python -V
-sudo yum install python-pip
-pip install xmljson (required for REST)
-ansible-galaxy collection install cisco.aci
+- sudo yum update
+- python -V
+- sudo yum install python-pip
+- pip install xmljson (required for REST)
+- ansible-galaxy collection install cisco.aci
 
 # hosts file as follows;
 [apics:vars]
