@@ -11,14 +11,14 @@
 - ansible-galaxy collection install cisco.aci
 
 # hosts file as follows;
-[apics:vars]
-ansible_connection=local
-username=admin
-password=C!sco123$
-ansible_python_interpreter="/usr/bin/python"
+- [apics:vars]
+- ansible_connection=local
+- username=aciuser
+- password=aciuser!
+- ansible_python_interpreter="/usr/bin/python"
 
-[apics]
-2.6.10.132 ansible_host=2.6.10.132
+- [apics]
+- 2.6.10.132 ansible_host=2.6.10.132
 
 # Test as follows;
 ansible -i ./hosts -m ping apics
