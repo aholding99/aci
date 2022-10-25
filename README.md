@@ -22,4 +22,4 @@
 
 # Test as follows;
 - ansible -i ./hosts -m ping apics
-- ansible-playbook -i ./hosts 01_aci_tenant_pb.yml --check -vvvv --tags snapshot
+- ansible-playbook -i ./hosts 01_aci_tenant.yaml --check -vvvv --tags snapshot
