@@ -1,0 +1,129 @@
+---
+
+# This playbook does the following;
+#   1. Takes a snapshot of the configuration
+#   2. Creates a Layer 2 BD (with flooding enabled) in Common Tenant
+#   3. Creates a new EPG in Tenant CustA1
+#   4. Binds new EPG to existing Domain
+#   5. Associates new EPG to the existing AEP used for Trunk ports
+#   6. Adds the new EPG to the existing SPAN Source-Group in Tennat CustA1 using REST / XML
+#
+#==============================================================================================
+# Available tags:
+#
+#   snapshot
+#   bd
+#   epg
+#   span
+#
+#==============================================================================================
+
+- name:                            Create Layer 2 BD
+  hosts:                           apics
+  connection:                      local
+  gather_facts:                    no
+
+#==============================================================================================
+# Create or delete. Comment out as required.
+#==============================================================================================
+  vars_prompt:
+    - name: "bd_name"
+      prompt: "Please enter the Layer 2 BD name (e.g. 10.99.99.0_24)"
+      private: no
+
+    - name: "vlan_id"
+      prompt: "Please enter the VLAN ID (e.g. 99)"
+      private: no
+
+  vars:
+    desired_state:                 present
+#    desired_state:                absent
+#    desired_status:               create,modified
+#    desired_status:               delete"
+#
+#==============================================================================================
+# APIC access information.
+#==============================================================================================
+    apic_info:                     &apic_info
+      host:                        2.6.10.132
+      username:                    aciuser
+      password:                    aciuser!
+      validate_certs:              no
+
+    rest_info:                     &rest_info
+      use_proxy:                   no
+      path:                        /api/mo/uni.xml
+      method:                      post
+
+#
+  tasks:
+    - name:                        Create an APIC Snapshot
+      cisco.aci.aci_config_snapshot:
+        <<:                        *apic_info
+        state:                     present
+        export_policy:             config_backup_ansible
+        max_count:                 10
+        description:               Snapshot Created by Ansible
+      tags:
+        - snapshot
+
+    - name: Create a L2 Bridge Domain
+      cisco.aci.aci_bd:
+        <<:                        *apic_info
+        tenant: common
+        vrf: common.vrf-01
+        bd: "{{ bd_name }}"
+        l2_unknown_unicast: flood
+        multi_dest: bd-flood
+        enable_routing: yes
+        arp_flooding: yes
+        state: "{{ desired_state }}"
+      tags:
+        - bd
+
+    - name: Create an EPG
+      cisco.aci.aci_epg:
+        <<:                        *apic_info
+        tenant: CustA1
+        ap: network-segments
+        epg: "{{ bd_name }}"
+        bd: "{{ bd_name }}"
+        state: "{{ desired_state }}"
+      tags:
+        - epg
+
+    - name: Bind EPG to Domain
+      cisco.aci.aci_epg_to_domain:
+        <<:                        *apic_info
+        tenant: CustA1
+        ap: network-segments
+        epg: "{{ bd_name }}"
+        domain: fabric_all
+        domain_type: phys
+        state: "{{ desired_state }}"
+      tags:
+        - epg
+
+    - name: Bind EPG to AAEP used for Trunk ports
+      cisco.aci.aci_aep_to_epg:
+        <<:                        *apic_info
+        aep: ah_CustAny_AAEP
+        tenant: CustA1
+        ap: network-segments
+        epg: "{{ bd_name }}"
+        encap_id: "{{ vlan_id }}"
+        interface_mode: trunk
+        state: "{{ desired_state }}"
+      tags:
+        - epg
+
+    - name: Add EPG to SPAN Source Group for Gigamon monitoring
+      cisco.aci.aci_rest:
+        <<:                        *apic_info
+        <<:                        *rest_info
+        content: |
+          <spanSrc dn="{{ 'uni/tn-CustA1/srcgrp-Gigamon_SG/src-' + bd_name }}" name="{{ bd_name }}">
+            <spanRsSrcToEpg tDn="{{ 'uni/tn-CustA1/ap-network-segments/epg-' + bd_name }}"/>
+          </spanSrc>
+      tags:
+        - span
